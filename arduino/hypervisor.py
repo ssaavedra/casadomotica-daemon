@@ -20,7 +20,7 @@ def join_alive_threads(thread_list):
 	for thread in thread_list:
 		if not thread.is_alive():
 			thread_list.remove(thread)
-			print("Removed thread %" % thread)
+			print("Removed thread %s" % thread)
 		thread.join(1)
 	pass
 
@@ -116,8 +116,7 @@ class ArduinoHypervisor:
 		self.arduino_handlers = {}
 		self.cv = threading.Condition()
 
-		print 'Lista de dispositivos: '
-		print device_list
+		print 'Lista de dispositivos: %s' % device_list
 		for device in device_list:
 			try:
 				device = self.ArduinoHandler(device, self.cv)
@@ -135,28 +134,34 @@ class ArduinoHypervisor:
 		else:
 			return None
 
-	def loop(self):
+	def watchdog(self):
 		"""This function runs a multiprocessing queue
 		so that each arduino handler won't lock while
 		waiting from info to be done
 		"""
 		global DAEMON_RUNNING
 
-		pool = multiprocessing.Pool(processes=6)
 		while DAEMON_RUNNING:
 			self.cv.acquire()
 			try:
 				self.cv.wait(10)
 				for (id,arduino) in self.arduino_handlers.iteritems():
 					if not arduino.in_queue.empty():
+						print 'There is info on the arduino query!'
 						for listener in arduino.getListeners():
-							pool.apply_async(listener.recv_msg, [msg,
-								arduino.in_queue])
+							new_process = Process(target=listener.recv_msg,
+									attrs=[msg, arduino.in_queue])
+							new_process.daemonic = True
+							new_process.start()
 
 			except KeyboardInterrupt:
 				DAEMON_RUNNING = False
 			finally:
 				self.cv.release()
+
+			time.sleep(0.001)
+		
+			
 		pass
 
 
@@ -168,6 +173,9 @@ class ArduinoHypervisor:
 
 		threads = []
 
+		#worker_pool = multiprocessing.Pool(processes=2, maxtasksperchild=10) # Py3K
+		#worker_pool = multiprocessing.Pool(processes=2)
+
 		for (id, obj) in self.arduino_handlers.iteritems():
 			thread = threading.Thread(target=obj.run)
 			threads.append(thread)
@@ -176,11 +184,14 @@ class ArduinoHypervisor:
 			thread.start()
 
 		try:
-			self.loop()
+			#self.watchdog(worker_pool)
+			self.watchdog()
 		except KeyboardInterrupt:
 			pass
-
-		join_alive_threads(threads)
+		finally:
+			#worker_pool.close()
+			#worker_pool.join()
+			join_alive_threads(threads)
 
 
 def run():

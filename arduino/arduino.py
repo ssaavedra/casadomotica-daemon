@@ -13,7 +13,7 @@ class Arduino:
 		and connects to that port, binding the
 		Arduino object to it.
 		"""
-		print(serialport)
+		print('Instanciado Arduino dispositivo %s' % serialport)
 		try:
 			self.serialport = serial.SerialPort(serialport, 9600)
 			self.fd = self.serialport.fd
@@ -30,6 +30,8 @@ class Arduino:
 		que exista algún byte que leer, porque no
 		funciona sin espera activa.
 		"""
+
+		"""
 		if block:
 			while True:
 				d = os.read(self.fd, 1)
@@ -44,6 +46,16 @@ class Arduino:
 				d = None
 
 		return d
+		"""
+
+		d = os.read(self.serialport.fd, 1)
+		while d == "":
+			if not block:
+				return None
+			d = os.read(self.serialport.fd, 1)
+
+		return ord(d)
+
 
 	def read_until(self, until):
 		return self.serialport.read_until(until)
@@ -65,11 +77,8 @@ class Arduino:
 		while self.read_byte(block=False) != None:
 			pass
 
-		print 'Escribimos byte...'
 		self.write_byte(QUERY_IDENT)
-		print 'Leemos byte con block...'
 		self.id = self.read_byte(True)
-		print 'Lido byte %s' % self.id
 		return self.id
 
 
