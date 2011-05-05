@@ -44,15 +44,16 @@ def FrontendServer():
 def main():
 	# Spawn threads
 	from multiprocessing import Process
-	frontend = Process(target=FrontendServer)
-	arduino_ctl = Process(target=arduino.hypervisor.run)
+	#frontend = Process(target=FrontendServer)
+	#arduino_ctl = Process(target=arduino.hypervisor.run)
 
 	#frontend.start()
-	arduino_ctl.start()
+	#arduino_ctl.start()
 
 	#frontend.join()
 	try:
-		arduino_ctl.join()
+		arduino.hypervisor.run()
+	#	arduino_ctl.join()
 	except KeyboardInterrupt:
 		print('')
 		print('Ctrl.+C called. Dying...')
