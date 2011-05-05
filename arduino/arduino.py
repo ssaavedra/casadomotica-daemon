@@ -48,7 +48,7 @@ class Arduino:
 		return d
 		"""
 
-		d = os.read(self.serialport.fd, 1)
+		d = os.read(self.fd, 1)
 		while d == "":
 			if not block:
 				return None
@@ -75,10 +75,12 @@ class Arduino:
 
 		# Consume all bytes for this query
 		while self.read_byte(block=False) != None:
+			print 'consuming remaining bytes...'
 			pass
 
-		self.write_byte(QUERY_IDENT)
-		self.id = self.read_byte(True)
+		while self.id == None:
+			self.write_byte(QUERY_IDENT)
+			self.id = self.read_byte(False)
 		return self.id
 
 
@@ -91,7 +93,7 @@ def device_list():
 	arduino_re = re.compile('tty\.usbserial')
 
 	# Get the Arduino's for each device
-	devices = [ Arduino('/dev/' + (device)) for device in devices if arduino_re.match(device) != None ]
+	devices = [ ('/dev/' + (device)) for device in devices if arduino_re.match(device) != None ]
 	return devices
 	
 

@@ -67,10 +67,10 @@ class ArduinoHypervisor:
 					byte = self.arduino.read_byte(False)
 					if byte == None:
 						if self.out_queue.empty():
-							time.sleep(0.01)
-						pass
+							#sleep(0.01)
+							pass
 					else:
-						self.parentcv.acquire()
+						#self.parentcv.acquire()
 						try:
 							if byte == BYTE_STX:
 								msg = self.arduino.read_until(BYTE_ETX)
@@ -78,9 +78,10 @@ class ArduinoHypervisor:
 							else:
 								msg = byte
 							self.in_queue.put(msg, block=False)
-							self.parentcv.notify()
+							#self.parentcv.notify()
 						finally:
-							self.parentcv.release()
+							#self.parentcv.release()
+							pass
 
 					# Do we have to send data?
 					if not self.out_queue.empty():
@@ -117,12 +118,12 @@ class ArduinoHypervisor:
 		self.cv = threading.Condition()
 
 		print 'Lista de dispositivos: %s' % device_list
-		for device in device_list:
+		for path in device_list:
 			try:
-				device = self.ArduinoHandler(device, self.cv)
+				device = self.ArduinoHandler(arduino.Arduino(path), self.cv)
 			except Exception as e:
 				print('Error while initializing device %s: %s' %
-						(device, e))
+						(path, e))
 				continue
 			id = device.get_id()
 			self.arduino_handlers[id] = device
@@ -142,22 +143,26 @@ class ArduinoHypervisor:
 		global DAEMON_RUNNING
 
 		while DAEMON_RUNNING:
-			self.cv.acquire()
+			#self.cv.acquire()
 			try:
-				self.cv.wait(10)
+				#self.cv.wait(10)
 				for (id,arduino) in self.arduino_handlers.iteritems():
 					if not arduino.in_queue.empty():
+						msg = arduino.in_queue.get()
 						print 'There is info on the arduino query!'
+						print '   Handling info: %s' % msg
 						for listener in arduino.getListeners():
+							print '     Sending to listener %s' % listener
 							new_process = Process(target=listener.recv_msg,
-									attrs=[msg, arduino.in_queue])
+									attrs=[msg, arduino.out_queue])
 							new_process.daemonic = True
 							new_process.start()
 
 			except KeyboardInterrupt:
 				DAEMON_RUNNING = False
 			finally:
-				self.cv.release()
+				#self.cv.release()
+				pass
 
 			time.sleep(0.001)
 		
