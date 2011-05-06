@@ -3,11 +3,11 @@
 
 import os, re, time
 
-import serial
+from serial import Serial
 from constants import *
 
 class Arduino:
-	
+
 	def __init__(self, serialport):
 		"""Takes the string of the serial port
 		and connects to that port, binding the
@@ -15,8 +15,7 @@ class Arduino:
 		"""
 		print('Instanciado Arduino dispositivo %s' % serialport)
 		try:
-			self.serialport = serial.SerialPort(serialport, 9600)
-			self.fd = self.serialport.fd
+			self.serialport = Serial(serialport, 9600)
 			self.error = False
 			self.id = None
 		except:
@@ -30,41 +29,24 @@ class Arduino:
 		que exista algún byte que leer, porque no
 		funciona sin espera activa.
 		"""
-
-		"""
-		if block:
-			while True:
-				d = os.read(self.fd, 1)
-				if d != "":
-					return ord(d)
-				else:
-					#time.sleep(0.001)
-					pass
-		else:
-			d = os.read(self.fd, 1)
-			if d == "":
-				d = None
-
-		return d
-		"""
-
-		d = os.read(self.fd, 1)
-		while d == "":
-			if not block:
-				return None
-			d = os.read(self.serialport.fd, 1)
-
-		return ord(d)
+		if block == False and self.serialport.inWaiting() < 1:
+			return None
+		return self.serialport.read(1);
 
 
 	def read_until(self, until):
-		return self.serialport.read_until(until)
+		buffer = []
+		while buffer[-1] != until:
+			if self.serialport.inWaiting() < 1:
+				return buffer
+			buffer += self.serialport.read(1);
+		return buffer
 
 	def write(self, str):
 		return self.serialport.write(str)
 
 	def write_byte(self, byte):
-		return self.serialport.write_byte(byte)
+		return self.serialport.write(chr(byte))
 
 	def get_id(self):
 		if self.error:
@@ -74,13 +56,13 @@ class Arduino:
 			return self.id
 
 		# Consume all bytes for this query
-		while self.read_byte(block=False) != None:
-			print 'consuming remaining bytes...'
-			pass
-
+		self.serialport.flushInput()
+		print 'Lendo o ID..'
 		while self.id == None:
 			self.write_byte(QUERY_IDENT)
-			self.id = self.read_byte(False)
+			self.id = self.serialport.read(1)
+			self.serialport.flush()
+			self.serialport.flushInput()
 		return self.id
 
 
@@ -95,5 +77,5 @@ def device_list():
 	# Get the Arduino's for each device
 	devices = [ ('/dev/' + (device)) for device in devices if arduino_re.match(device) != None ]
 	return devices
-	
+
 
