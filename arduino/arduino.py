@@ -72,7 +72,18 @@ def device_list():
 		raise EnvironmentError('You have no /dev dir!')
 
 	devices = os.listdir('/dev')
-	arduino_re = re.compile('tty\.usbserial')
+
+	plat = sys.platform.lower()
+
+	if plat[:5] == 'linux':
+		arduino_re = re.compile('ttyUSB');
+
+	elif plat[:6] == 'darwin':
+		arduino_re = re.compile('tty\.usbserial')
+
+	else:
+		raise EnvironmentError('No compatible platform found' + \
+				'in the auto-detecion')
 
 	# Get the Arduino's for each device
 	devices = [ ('/dev/' + (device)) for device in devices if arduino_re.match(device) != None ]
