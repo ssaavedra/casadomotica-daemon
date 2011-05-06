@@ -1,7 +1,7 @@
 #!/bin/python
 # vim: set fileencoding=utf-8 noet ts=4 sw=4 sts=4 tw=79 :
 
-import os, re, time
+import os, sys, re, time
 
 from serial import Serial
 from constants import *
