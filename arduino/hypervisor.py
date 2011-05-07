@@ -117,7 +117,7 @@ class ArduinoHypervisor:
 		self.arduino_handlers = {}
 		self.cv = threading.Condition()
 
-		print 'Lista de dispositivos: %s' % device_list
+		print 'Device list: %s' % device_list
 		for path in device_list:
 			try:
 				device = self.ArduinoHandler(arduino.Arduino(path), self.cv)
@@ -149,12 +149,12 @@ class ArduinoHypervisor:
 				for (id,arduino) in self.arduino_handlers.iteritems():
 					if not arduino.in_queue.empty():
 						msg = arduino.in_queue.get()
-						print 'There is info on the arduino query!'
+						print 'There is info on the arduino#%s query!' % id
 						print '   Handling info: %s' % msg
 						for listener in arduino.getListeners():
 							print '     Sending to listener %s' % listener
-							new_process = Process(target=listener.recv_msg,
-									attrs=[msg, arduino.out_queue])
+							new_process = multiprocessing.Process(target=listener.recv_msg,
+									args=(msg, arduino.out_queue.put_nowait))
 							new_process.daemonic = True
 							new_process.start()
 
@@ -206,11 +206,12 @@ def run():
 	modules = controller.load_all()
 	workers = {}
 	for module_name, module in modules.iteritems():
-		arduino_id = module.arduino_id
-		if arduino_id in workers:
-			workers[arduino_id].append(module)
-		else:
-			workers[arduino_id] = [module]
+		arduino_ids = module.arduino_ids
+		for arduino_id in arduino_ids:
+			if arduino_id in workers:
+				workers[arduino_id].append(module)
+			else:
+				workers[arduino_id] = [module]
 
 	for arduino_id, mod_list in workers.iteritems():
 		for module in mod_list:

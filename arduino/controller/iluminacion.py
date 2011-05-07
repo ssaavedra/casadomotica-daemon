@@ -3,7 +3,7 @@
 
 from arduino.constants import *
 
-arduino_id = 4
+arduino_ids = [4]
 
 variables = { \
 		'digital' : \

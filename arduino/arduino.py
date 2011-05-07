@@ -61,6 +61,7 @@ class Arduino:
 		while self.id == None:
 			self.write_byte(QUERY_IDENT)
 			self.id = self.serialport.read(1)
+			self.id = ord(self.id)
 			self.serialport.flush()
 			self.serialport.flushInput()
 		return self.id
